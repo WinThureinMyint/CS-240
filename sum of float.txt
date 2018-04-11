@@ -41,9 +41,9 @@ main:
 	li 	$t0, 0 		# clear register $t0 to zero
 	
 	#mfc1	$f0, $v0
-	mfc1	$t1, $f0
+	mfc1	$t1, $f0 	#get the single precision table
 	
-	srl	$t2, $t1, 23
+	srl	$t2, $t1, 23 	#so 0-9 left in precision
 	add 	$s3, $t2, -127	# s3 is exponent
 	
 	sll 	$t4, $t1, 9
