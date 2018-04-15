@@ -1,32 +1,18 @@
-# Program Name: Sum of Integers
-# Programmer: YOUR NAME
-# Date last modified:
-# Functional Description:
-# A program to find the Sum of the Integers from 1 to N, where N is a value
+# Program Name: Sum of FLoat
+# Programmer: Win Thurein Myint
+# Date last modified: 04/10/2018
+# Functional Description: 
+# A program to find the Sum of the Integers and Float from 1 to N, where N is a value
 # input from the keyboard.
+# Note : The program can't calcute the number between 0 and 1. (eg. 0.11)
 ##################################################################
-# Pseudocode description of algorithm:
-# main: cout << �Please input a value for N�
-# cin >> v0
-# If ( v0 <= 0 ) stop
-# t0 = 0;
-# While (v0 > 0 ) do
-# {
-# t0 = t0 + v0;
-# v0 = v0 - 1;
-# }
-# cout << t0;
-# go to main 
-#####################################################################
-# Cross References:
-# v0: N,
-# t0: Sum
-#####################################################################
+
 		.data
 prompt:		.asciiz		"\n Please Input a value for N = "
-result:		.asciiz		" The sum of the integers from 1 to N is "
+result:		.asciiz		"\n The sum of the integers from 1 to N is "
+	
 bye:		.asciiz		"\n **** Adios Amigo - Have a good day ****"
-FP_Num:		.asciiz		"\n float"
+FP_Num:		.asciiz		" You entered a floating Point Number. It has been truncated and we will be using : "
 		.globl main
 		.text
 main:
@@ -41,39 +27,64 @@ main:
 	li 	$t0, 0 		# clear register $t0 to zero
 	
 	#mfc1	$f0, $v0
-	mfc1	$t1, $f0 	#get the single precision table
+	mfc1	$t1, $f0 	# Get the single precision table
 	
-	srl	$t2, $t1, 23 	#so 0-9 left in precision
-	add 	$s3, $t2, -127	# s3 is exponent
+	srl	$t2, $t1, 23 	# so 0-9 left in precision
+	add 	$s3, $t2, -127	# add -127 to $t2. $s3 is exponent
 	
-	sll 	$t4, $t1, 9
-	srl 	$t5, $t4, 9 
-	add 	$t6, $t5, 8388608 
-	add 	$t7, $s3, 9
+	sll 	$t4, $t1, 9	# Shift 9 bit to left to take out the exponent and sign bit
+	srl 	$t5, $t4, 9 	# Shift 9 bit back to right to get orginal position. This will make all previous bits 0
+	add 	$t6, $t5, 8388608 # Add the impied bit to bit number 0 (2^23)
+	add 	$t7, $s3, 9	# Add 9 to the exponent value $s3.
+	sllv	$s4, $t6, $t7 	# By shifting to the left 9+ component. If this number NE 0 then there is a fraction.
 	
-	rol 	$t4, $t6, $t7
+	#Now get the integer
+	rol 	$t4, $t6, $t7	# rotate left of t6 by t7 places to get the integer portion in the right most bits 
+	# Shift left 31 -exp to zero out the other bits
+	li 	$t5, 31		# put 31 into destination register $t5
+	sub 	$t2, $t5, $s3	# shift value
+	sllv 	$t5, $t4, $t2	# shift the value in $t4 by value in $t2 to the left and put the result into $t5. Zero out of fraction part
+	srlv 	$s5,$t5,$t2 	# shift the value in $t5 by value of $t2 to the right and put the result into $s5. Reset integer bits. Integer is in $s5
 	
-	li 	$t5, 31
-	sub 	$t2, $t5, $s3
-	sllv 	$t5, $t4, $t2
-	srlv 	$s5,$t5,$t2 	# $t5 is the integer
+	move 	$v0,$s5		# Move the integer value to $v0
 	
-	move $v0,$s5
-	li $t0,0
-	blez	$t1, End
-	blez $s4, Loop
-		li 	$v0,4
-		la $a0,FP_Num
-		syscall
-		li	$v0,1
-		move	$a0,$s5
+	li 	$t0, 0		# put 0 into destination register $t0
+	blez	$t1, End	# branch to end if 0, There is the integer of the floating point
+	blez 	$s4, Loop	# If no fraction, branch to loop
+	
+	li 	$v0,4		# system call code for Print String
+	la 	$a0,FP_Num	# load address of prompt into $a0
+	syscall			# print the prompt message
 		
-		syscall
-		move $v0,$s5
+	li	$v0,1		# system call code for Print Integer
+	move	$a0,$s5		# move value to be printed to $a0
+	syscall			# print sum of integers
+		
+	move 	$v0,$s5		# MNeed to move the value of s5 since v0 contains 4 from syscall
+	
 Loop:
 	add 	$t0, $t0, $v0 	# sum of integers in register $t0
 	addi 	$v0, $v0, -1 	# summing integers in reverse order
 	bnez 	$v0, Loop 	# branch to loop if $v0 is != zero
+	
+	
+
+	li 	$v0, 4 		# system call code for Print String
+	la 	$a0, result 	# load address of message into $a0
+	syscall 		# print the string
+	
+	li 	$v0, 1 		# system call code for Print Integer
+	move 	$a0, $t0 	# move value to be printed to $a0
+	syscall 		# print sum of integers
+	b 	main 		# branch to main 
+Truncate:	
+	li 	$v0, 4 		# system call code for Print String
+	la 	$a0, Used_Float 	# load address of message into $a0
+	syscall 
+	
+	li 	$v0, 1 		# system call code for Print Integer
+	move 	$a0, $v0 	# move value to be printed to $a0
+	syscall 		# print sum of integers
 	
 	li 	$v0, 4 		# system call code for Print String
 	la 	$a0, result 	# load address of message into $a0
@@ -90,36 +101,7 @@ End: 	li 	$v0, 4 		# system call code for Print String
 	
 	li 	$v0, 10 	# terminate program run and
 	syscall 
-#	beq $s1, 0, float
-	
-	
-#float:
 
-#	li $v0, 1
-#	move $a0, $s5
-#	syscall
-	#li 	$v0, 1		# system call code for Print String
-#	move 	$a0, $t2 
-	#syscall 		# print the prompt message
-	#add 	$t7, $s3, 9
-	
-	
-	#la 	$f0, prompt
-	#li 	$v0, 4
-	#la 	$t0, prompt
-	#syscall 
-	#li 	$v0, 4
-	#la 	$t2, prompt
-	#syscall 
-	#li 	$v0, 4
-	#la 	$t3, prompt
-	#syscall 
-	# if exponent is 0, that is integer
-	
-	#mtc1 .. cvt.s.w
-	# add.s  for fraction
-	# add for the integer
-	
 end: 	li 	$v0, 4 		# system call code for Print String
 	la 	$a0, bye 	# load address of msg. into $a0
 	syscall 		# print the string
